@@ -1,0 +1,41 @@
+name: Upstream Sync
+
+permissions:
+  contents: write
+
+on:
+  schedule:
+    - cron: "0 0 * * *" # 每天UTC时间0点（北京时间早8点）自动检查更新
+  workflow_dispatch: # 允许手动点击按钮触发
+
+jobs:
+  sync_latest_from_upstream:
+    name: Sync latest commits from upstream repo
+    runs-on: ubuntu-latest
+    if: ${{ github.event.repository.fork }}
+
+    steps:
+      - name: Checkout target repo
+        uses: actions/checkout@v3
+
+      - name: Sync upstream changes
+        id: sync
+        uses: aormsby/Fork-Sync-With-Upstream-action@v3.4
+        with:
+          # 上游仓库地址（原作者的仓库）
+          upstream_sync_repo: 7Sageer/sublink-worker
+          # 上游仓库的分支（原作者的主分支）
+          upstream_sync_branch: main
+          # 你仓库的分支（通常也是 main）
+          target_sync_branch: main
+          # 必要的 Token，保持原样即可
+          target_repo_token: ${{ secrets.GITHUB_TOKEN }}
+          # 设置为 false 表示真正执行同步，而不是测试
+          test_mode: false
+
+      - name: Sync check
+        if: failure()
+        run: |
+          echo "[Error] 同步失败，可能是因为上游仓库的 workflow 配置发生了重大变更"
+          echo "[Error] 请前往 GitHub 页面手动点击 'Sync fork' 按钮尝试修复"
+          exit 1
